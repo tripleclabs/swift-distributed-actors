@@ -122,7 +122,7 @@ public distributed actor WorkerPool<Worker: DistributedWorker>: DistributedWorke
             level: self.logLevel,
             "Incoming work, selecting worker",
             metadata: [
-                "workers/count": "\(self.size)",
+                "workers/count": "\(self.workers.count)",
                 "worker/item": "\(work)",
             ]
         )
@@ -132,13 +132,13 @@ public distributed actor WorkerPool<Worker: DistributedWorker>: DistributedWorke
             "Selected worker, submitting [\(work)] to [\(worker)]",
             metadata: [
                 "worker": "\(worker.id)",
-                "workers/count": "\(self.size)",
+                "workers/count": "\(self.workers.count)",
             ]
         )
         return try await worker.submit(work: work)
     }
 
-    internal distributed var size: Int {
+    internal distributed func size() -> Int {
         self.workers.count
     }
 
@@ -198,11 +198,12 @@ public distributed actor WorkerPool<Worker: DistributedWorker>: DistributedWorke
         case .random:
             return self.workers.shuffled().first
         case .simpleRoundRobin:
-            if self.roundRobinPos >= self.size {
+            let size = self.workers.count
+            if self.roundRobinPos >= size {
                 self.roundRobinPos = 0  // loop around from zero
             }
             let selected = self.workers[self.roundRobinPos]
-            self.roundRobinPos = self.workers.index(after: self.roundRobinPos) % self.size
+            self.roundRobinPos = self.workers.index(after: self.roundRobinPos) % size
             return selected
         }
     }
